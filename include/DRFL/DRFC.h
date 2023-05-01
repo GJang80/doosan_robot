@@ -43,8 +43,6 @@
 
 #pragma once
 
-#undef _IS_PLATFORM
-
 #ifndef TRUE
 #define TRUE  1
 #endif

@@ -73,7 +73,6 @@ namespace DRAFramework
     typedef void (*TOnMonitoringRobotSystemCB)(const ROBOT_SYSTEM);
     typedef void (*TOnMonitoringSafetyStopTypeCB)(const unsigned char);
 
-
 #ifdef __cplusplus
     extern "C" 
     {
@@ -400,6 +399,7 @@ namespace DRAFramework
         DRFL_API LPSAFETY_CONFIGURATION_EX _get_safety_configuration(LPROBOTCONTROL pCtrl);
 
         DRFL_API bool _change_collision_sensitivity(LPROBOTCONTROL pCtrl, float fSensitivity);
+        DRFL_API bool _set_palletizing_mode(LPROBOTCONTROL pCtrl, unsigned char iMode);
         ////////////////////////////////////////////////////////////////////////////
         //  drl program Operations                                                //
         ////////////////////////////////////////////////////////////////////////////
@@ -459,7 +459,6 @@ namespace DRAFramework
         DRFL_API bool _save_sub_program(LPROBOTCONTROL pCtrl, int iTargetType, const char* szFileName, const char* lpszTextString);
         DRFL_API bool _setup_monitoring_version(LPROBOTCONTROL pCtrl, int iVersion);
         DRFL_API bool _system_shut_down(LPROBOTCONTROL pCtrl);
-
 
 #ifdef __cplusplus
     };
@@ -793,6 +792,7 @@ namespace DRAFramework
         bool set_safety_mode(SAFETY_MODE eSafetyMode, SAFETY_MODE_EVENT eSafetyEvent){ return _set_safety_mode(_rbtCtrl, eSafetyMode, eSafetyEvent); };
         bool set_auto_servo_off(bool bFuncEnable, float fElapseTime){ return _set_auto_servo_off(_rbtCtrl, bFuncEnable, fElapseTime); };
         bool change_collision_sensitivity(float fSensitivity){ return _change_collision_sensitivity(_rbtCtrl, fSensitivity); };
+        bool set_palletizing_mode(unsigned char iMode) { return _set_palletizing_mode(_rbtCtrl, iMode); };
 
         LPSAFETY_CONFIGURATION_EX get_safety_configuration(){ return _get_safety_configuration(_rbtCtrl); };
 
@@ -855,7 +855,6 @@ namespace DRAFramework
         bool save_sub_program(int iTargetType, string strFileName, string strDrlProgram) { return _save_sub_program(_rbtCtrl, iTargetType, strFileName.c_str(), strDrlProgram.c_str()); };
         bool setup_monitoring_version(int iVersion) { return _setup_monitoring_version(_rbtCtrl, iVersion); };
         bool system_shut_down() { return _system_shut_down(_rbtCtrl); };
-
 
 protected:
         LPROBOTCONTROL _rbtCtrlUDP;
