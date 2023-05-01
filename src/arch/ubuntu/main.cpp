@@ -1,14 +1,15 @@
-// DRFTWin32.cpp : ÄÜ¼Ö ÀÀ¿ë ÇÁ·Î±×·¥¿¡ ´ëÇÑ ÁøÀÔÁ¡À» Á¤ÀÇÇÕ´Ï´Ù.
+// DRFTWin32.cpp : ì½˜ì†” ì‘ìš© í”„ë¡œê·¸ë¨ì— ëŒ€í•œ ì§„ì…ì ì„ ì •ì˜í•©ë‹ˆë‹¤.
 //
-// #include "stdafx.h"
-#include <Windows.h>
-#include <conio.h>
-#include <process.h>
-#include <tchar.h>
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
 
+#include <chrono>
+#include <cstring>
 #include <iostream>
+#include <thread>
 
-#include "DRFLEx.h"
+#include "drfl/DRFLEx.h"
 using namespace DRAFramework;
 
 #undef NDEBUG
@@ -26,30 +27,59 @@ while loop < 1003:\r\n\
  movej(posj(10,10.10,10,10.10), vel=60, acc=60)\r\n\
  movej(posj(00,00.00,00,00.00), vel=60, acc=60)\r\n\
  loop+=1\r\n";
-DWORD WINAPI ThreadFunc(void* arg);
 
 bool bAlterFlag = FALSE;
 
+int kbhit(void) {
+  struct termios oldt, newt;
+  int ch;
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+  ch = getchar();
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  return ch;
+}
+
+int _getch() {
+  int c;
+  struct termios oldattr, newattr;
+
+  tcgetattr(STDIN_FILENO, &oldattr);  // í˜„ì¬ í„°ë¯¸ë„ ì„¤ì • ì½ìŒ
+  newattr = oldattr;
+  newattr.c_lflag &= ~(ICANON | ECHO);  // CANONICALê³¼ ECHO ë”
+  newattr.c_cc[VMIN] = 1;   // ìµœì†Œ ì…ë ¥ ë¬¸ì ìˆ˜ë¥¼ 1ë¡œ ì„¤ì •
+  newattr.c_cc[VTIME] = 0;  // ìµœì†Œ ì½ê¸° ëŒ€ê¸° ì‹œê°„ì„ 0ìœ¼ë¡œ ì„¤ì •
+  tcsetattr(STDIN_FILENO, TCSANOW, &newattr);  // í„°ë¯¸ë„ì— ì„¤ì • ì…ë ¥
+  c = getchar();                               // í‚¤ë³´ë“œ ì…ë ¥ ì½ìŒ
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);  // ì›ë˜ì˜ ì„¤ì •ìœ¼ë¡œ ë³µêµ¬
+  return c;
+}
+
 void OnTpInitializingCompleted() {
-  // Tp ÃÊ±âÈ­ ÀÌÈÄ Á¦¾î±Ç ¿äÃ».
+  // Tp ì´ˆê¸°í™” ì´í›„ ì œì–´ê¶Œ ìš”ì²­.
   g_TpInitailizingComplted = TRUE;
   Drfl.ManageAccessControl(MANAGE_ACCESS_CONTROL_FORCE_REQUEST);
 }
 
 void OnHommingCompleted() {
-  // 50msec ÀÌ³» ÀÛ¾÷¸¸ ¼öÇàÇÒ °Í.
+  // 50msec ì´ë‚´ ì‘ì—…ë§Œ ìˆ˜í–‰í•  ê²ƒ.
   cout << "homming completed" << endl;
 }
 
 void OnProgramStopped(const PROGRAM_STOP_CAUSE) {
   assert(Drfl.PlayDrlStop(STOP_TYPE_SLOW));
-  // 50msec ÀÌ³» ÀÛ¾÷¸¸ ¼öÇàÇÒ °Í.
+  // 50msec ì´ë‚´ ì‘ì—…ë§Œ ìˆ˜í–‰í•  ê²ƒ.
   // assert(Drfl.SetRobotMode(ROBOT_MODE_MANUAL));
   cout << "program stopped" << endl;
 }
 
 void OnMonitoringDataCB(const LPMONITORING_DATA pData) {
-  // 50msec ÀÌ³» ÀÛ¾÷¸¸ ¼öÇàÇÒ °Í.
+  // 50msec ì´ë‚´ ì‘ì—…ë§Œ ìˆ˜í–‰í•  ê²ƒ.
 
   return;
   cout << "# monitoring 0 data " << pData->_tCtrl._tTask._fActualPos[0][0]
@@ -90,10 +120,10 @@ void OnMonitoringCtrlIOExCB(const LPMONITORING_CTRLIO_EX pData) {
 }
 
 void OnMonitoringStateCB(const ROBOT_STATE eState) {
-  // 50msec ÀÌ³» ÀÛ¾÷¸¸ ¼öÇàÇÒ °Í.
+  // 50msec ì´ë‚´ ì‘ì—…ë§Œ ìˆ˜í–‰í•  ê²ƒ.
   switch ((unsigned char)eState) {
-#if 0  // TP ÃÊ±âÈ­½Ã »ç¿ëÇÏ´Â ·ÎÁ÷ÀÓÀ¸·Î API ·¹º§¿¡¼­´Â »ç¿ëÇÏÁö ¸»°Í.(TP¾øÀÌ
-       // ´Üµ¶ »ç¿ëÀÏ °æ¿ì, »ç¿ë)
+#if 0  // TP ì´ˆê¸°í™”ì‹œ ì‚¬ìš©í•˜ëŠ” ë¡œì§ì„ìœ¼ë¡œ API ë ˆë²¨ì—ì„œëŠ” ì‚¬ìš©í•˜ì§€ ë§ê²ƒ.(TPì—†ì´
+       // ë‹¨ë… ì‚¬ìš©ì¼ ê²½ìš°, ì‚¬ìš©)
     case STATE_NOT_READY:
         if (g_bHasControlAuthority) Drfl.SetRobotControl(CONTROL_INIT_CONFIG);
         break;
@@ -143,7 +173,7 @@ void OnMonitoringStateCB(const ROBOT_STATE eState) {
 
 void OnMonitroingAccessControlCB(
     const MONITORING_ACCESS_CONTROL eTrasnsitControl) {
-  // 50msec ÀÌ³» ÀÛ¾÷¸¸ ¼öÇàÇÒ °Í.
+  // 50msec ì´ë‚´ ì‘ì—…ë§Œ ìˆ˜í–‰í•  ê²ƒ.
 
   switch (eTrasnsitControl) {
     case MONITORING_ACCESS_CONTROL_REQUEST:
@@ -196,9 +226,11 @@ void OnTpGetuserInput(LPMESSAGE_INPUT tInput) {
   cout << "Data Type : " << (int)tInput->_iType << endl;
 }
 
-DWORD WINAPI ThreadFunc(void* arg) {
+uint32_t ThreadFunc(void* arg) {
+  printf("start ThreadFunc\n");
+
   while (true) {
-    if (_kbhit()) {
+    if (kbhit()) {
       char ch = _getch();
       switch (ch) {
         case 's': {
@@ -214,7 +246,6 @@ DWORD WINAPI ThreadFunc(void* arg) {
           printf("Resume!\n");
           Drfl.MoveResume();
         } break;
-
         case 'y': {
           while (bAlterFlag) {
             float pos[6] = {10, 0, 0, 10, 0, 0};
@@ -224,7 +255,7 @@ DWORD WINAPI ThreadFunc(void* arg) {
         }
       }
     }
-    Sleep(100);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
   return 0;
@@ -232,12 +263,12 @@ DWORD WINAPI ThreadFunc(void* arg) {
 
 void OnDisConnected() {
   while (!Drfl.open_connection("192.168.137.100")) {
-    Sleep(1000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
 }
 
-int _tmain(int argc, _TCHAR* argv[]) {
-  // Äİ¹é µî·Ï(// Äİ¹é ÇÔ¼ö ³»¿¡¼­´Â 50msec ÀÌ³» ÀÛ¾÷¸¸ ¼öÇàÇÒ °Í)
+int main(int argc, char** argv) {
+  // ì½œë°± ë“±ë¡(// ì½œë°± í•¨ìˆ˜ ë‚´ì—ì„œëŠ” 50msec ì´ë‚´ ì‘ì—…ë§Œ ìˆ˜í–‰í•  ê²ƒ)
   // Drfl.set_on_homming_completed(OnHommingCompleted);
   // Drfl.set_on_monitoring_data(OnMonitoringDataCB);
   // Drfl.set_on_monitoring_data_ex(OnMonitoringDataExCB);
@@ -255,25 +286,25 @@ int _tmain(int argc, _TCHAR* argv[]) {
   // Drfl.set_on_program_stopped(OnProgramStopped);
   // Drfl.set_on_disconnected(OnDisConnected);
 
-  // ¿¬°á ¼ö¸³
+  // ì—°ê²° ìˆ˜ë¦½
   assert(Drfl.open_connection("192.168.137.100"));
 
-  // ¹öÀü Á¤º¸ È¹µæ
+  // ë²„ì „ ì •ë³´ íšë“
   SYSTEM_VERSION tSysVerion = {
       '\0',
   };
   Drfl.get_system_version(&tSysVerion);
-  // ¸ğ´ÏÅÍ¸µ µ¥ÀÌÅÍ ¹öÀü º¯°æ
-  assert(Drfl.setup_monitoring_version(1));
+  // ëª¨ë‹ˆí„°ë§ ë°ì´í„° ë²„ì „ ë³€ê²½
+  Drfl.setup_monitoring_version(1);
   Drfl.set_robot_control(CONTROL_SERVO_ON);
   // Drfl.set_digital_output(GPIO_CTRLBOX_DIGITAL_INDEX_10, TRUE);
   cout << "System version: " << tSysVerion._szController << endl;
   cout << "Library version: " << Drfl.get_library_version() << endl;
 
   while ((Drfl.get_robot_state() != STATE_STANDBY) || !g_bHasControlAuthority)
-    Sleep(1000);
+    this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-  // ¼öµ¿ ¸ğµå ¼³Á¤
+  // ìˆ˜ë™ ëª¨ë“œ ì„¤ì •
 
   assert(Drfl.set_robot_mode(ROBOT_MODE_MANUAL));
   assert(Drfl.set_robot_system(ROBOT_SYSTEM_REAL));
@@ -296,13 +327,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
   EXAMPLE eExample = EXAMPLE_LAST;
 
-  HANDLE hThread;
-  DWORD dwThreadID;
-  hThread = CreateThread(NULL, 0, ThreadFunc, NULL, 0, &dwThreadID);
-  if (hThread == 0) {
-    printf("Thread Error\n");
-    return 0;
-  }
+  std::thread _thread([]() { ThreadFunc(0); });
 
   bool bLoop = TRUE;
   while (bLoop) {
@@ -391,7 +416,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
         float pos1[6] = {100, 0, 0, 0, 0, 0};
         float vel[2] = {60, 60};
         float acc[2] = {100, 100};
-        Sleep(2000);
+        this_thread::sleep_for(std::chrono::milliseconds(2000));
         // Drfl.movel(pos1, vel, acc, 0, MOVE_MODE_RELATIVE);
         Drfl.release_force();
         Drfl.release_compliance_ctrl();
@@ -466,7 +491,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
           // int set_ref_coord_user =
           // Drfl.ConfigUserCoordinateSystemEx(set_ref_coord_vec,
-          // set_ref_coord_org); //2.5 ÇÖÇÈ½º ÀÌÀü ¹öÀü¿¡¼­ ÀÛµ¿ ¾ÈÇÒ¼ö ÀÖÀ½
+          // set_ref_coord_org); //2.5 ï¿½ï¿½ï¿½È½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ûµï¿½ ï¿½ï¿½ï¿½Ò¼ï¿½ ï¿½ï¿½ï¿½ï¿½
           Drfl.set_ref_coord((COORDINATE_SYSTEM)1);
           Drfl.movej(cal_fkin_q1, 60, 30);
 
@@ -480,7 +505,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
           float check_motion_q0[6] = {0, 0, 90, 0, 90, 0};
           float check_motion_q99[6] = {0, 0, 0, 0, 0, 0};
           Drfl.MoveJAsync(check_motion_q0, 60,
-                          30);  // q0·Î ¸ğ¼Ç ¹× Áï½Ã ´ÙÀ½¸í·É ¼öÇà
+                          30);  // q0ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
           int check_motion_res = Drfl.check_motion();
           cout << check_motion_res << endl;
 
@@ -498,7 +523,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
                               Drfl.SetRobotMode(ROBOT_MODE_AUTONOMOUS);
                               if (Drfl.GetRobotMode() == ROBOT_MODE_AUTONOMOUS)
              {
-                              // ÀÚµ¿¸ğµå
+                              // ï¿½Úµï¿½ï¿½ï¿½ï¿½
                               ROBOT_SYSTEM eTargetSystem = ROBOT_SYSTEM_VIRTUAL;
                               bool drl_start_res =
              Drfl.PlayDrlStart(eTargetSystem, play_drl_speed_res_strDrlProgram);
@@ -830,13 +855,13 @@ int _tmain(int argc, _TCHAR* argv[]) {
       } break;
       case 'a': {
         Drfl.set_tool("tool2");
-        Sleep(1000);
+        this_thread::sleep_for(std::chrono::milliseconds(1000));
         cout << Drfl.get_tool() << endl;
       } break;
       default:
         break;
     }
-    Sleep(100);
+    this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
   Drfl.CloseConnection();
