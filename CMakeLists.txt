@@ -24,7 +24,11 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message("debug mode")
 endif()
 
-add_executable(doosan_robot_demo "${PROJECT_SOURCE_DIR}/src/arch/${OS}/main.cpp")
+add_executable(doosan_robot_demo
+    "${PROJECT_SOURCE_DIR}/src/arch/${OS}/main.cpp"
+)
+target_link_libraries(doosan_robot_demo libDRFL.a PocoFoundation PocoNet)
+#libPocoFoundation.so.62 libPocoNet.so.62
 
 if ( MSVC )
 # if (${OS} == "win32")
@@ -34,10 +38,10 @@ if ( MSVC )
 #     target_link_libraries( doosan_robot_demo DRFLWin64 PocoFoundation PocoNet)
 # endif()
 
-target_link_libraries( doosan_robot_demo DRFLWin64 PocoFoundation PocoNet)
-set_target_properties( doosan_robot_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" )
-set_target_properties( doosan_robot_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}" )
-set_target_properties( doosan_robot_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}" )
+# target_link_libraries( doosan_robot_demo DRFLWin64 PocoFoundation PocoNet)
+# set_target_properties( doosan_robot_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" )
+# set_target_properties( doosan_robot_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}" )
+# set_target_properties( doosan_robot_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}" )
 
 file(GLOB DRLF_DLL_FILES ${DRFL_LIBRARY_DIRECTORY}/*.dll)
 foreach( dll_file ${DRLF_DLL_FILES})
