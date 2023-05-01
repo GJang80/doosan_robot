@@ -1,0 +1,8 @@
+function(print_include_directories)
+    get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+    message("INCLUDE_DIRECTORIES: [")
+    foreach(dir ${dirs})
+        message("\t\"${dir}\"")
+    endforeach()
+    message("]")
+endfunction()
